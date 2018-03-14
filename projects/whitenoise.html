@@ -1,0 +1,71 @@
+<html>
+<head>
+    <title>Liu Zhaopeng</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="/rainbow/github.css" rel="stylesheet">
+</head>
+<body>
+    <div id = "main">
+        <a href="/" id="homelink">HOME</a>
+
+        <h1>White Noise</h1>
+        <h3>Linear Congruential Method</h3>
+        <hr>
+        <h3>Generate random unsigned byte [256]</h3>
+        <p>Use Linear congruential method. 
+            $$A_{n+1}=(B\times A_{n}+C)\ mod\ M$$
+            Generating unsigned byte p[256]:
+        <pre><code data-language="c">unsigned char p[256];
+int temp[256];
+void init() {
+    int A = 777;
+    int B = 3337;
+    int M = 8192;
+    p[0] = 0;
+    temp[0] = 0;
+    for (int i = 1; i &lt 256; i++) {
+        temp[i] = ((temp[i - 1] * A + B+i) % M);
+        
+        p[i] = temp[i] % 256;
+    }
+}</code></pre>
+This has no difference with the standard function <code data-language="c">rand()</code> in <code data-language="c">stdlib.h</code>.
+        </p>
+        <h3>Generate the 2D picture</h3>
+        <p>Use p as the only input, and generate a 256*256 picture.
+            <pre><code data-language = "c">color[x][y] = p[(p[x] + y) % 256]</code></pre>
+            Put p in <code data-language = "c">GL_SHADER_STORAGE_BUFFER</code> and use it in fragment shader:
+            <pre><code data-language = "c">#version 430
+in vec2 vTexCoord;
+layout(std430, binding = 0)buffer ssbo {
+    uint data_SSBO[256];
+};
+vec2 originColor(vec2 coord){
+    int x=int(coord.x*255.0)%256;
+    int y = int(coord.y*255.0)%256;
+    float red,green;
+    red  = ((data_SSBO[(data_SSBO[x]+y)%256])%256)/256.0;
+    green  = ((data_SSBO[(data_SSBO[y]+x)%256])%256)/256.0;
+    return vec2(red,green);
+}
+void main(void){
+    gl_FragColor = vec4(originColor(vTexCoord),0,1);
+}</code></pre>
+        </p>
+        <h3>Result</h3>
+        <img src="whitenoise.jpg" alt=""/>
+        <a download href="whitenoise.cpp"><p>Full Code</p></a>
+        <h3>Dependencies</h3>
+        <a href="http://www.glfw.org/"><p>GLFW</p></a>
+        <a href="http://glad.dav1d.de/">GLAD</a>
+    </div>
+    <script src="/rainbow/rainbow-custom.min.js"></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+            });
+    </script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+</body>
+</html>
