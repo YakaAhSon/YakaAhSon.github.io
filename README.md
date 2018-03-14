@@ -1,2 +1,0 @@
-# YakaAhSon.github.io
-## hahaha
