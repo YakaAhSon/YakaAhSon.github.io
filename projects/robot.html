@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+<head>
+    <title>Liu Zhaopeng</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="/rainbow/github.css" rel="stylesheet">
+</head>
+<body>
+    <div id = "main">
+        <a href="/" id="homelink">HOME</a>
+
+        <h1>A Robot</h1>
+        <h3>A running robot. This is for practicing scene management.</h3>
+        <hr>
+
+        <h3>Scene Management Framework</h3>
+        <p>
+            All objects in the scene are managed in a tree. The root is the scene. The leaves are single geometric objects, in this project, only sphere and cylinder are included.
+            In order to build the tree data structure, geometric groups are intruduced. Geometric groups are containers of single objects and other geometric groups.
+            Geometric groups and geometric objects can be rotated or translated globally or locally.<br/>
+            Moving globally means the movement is related to the coordinate of it's container.<br/>
+            Moving locally means the movement is related to it's own coordinate.<br/>
+            Coordinates are maneged by the class <code>GeometricCoordinate</code>
+            <pre><code data-language="c">// my_objectmanager.h
+class GeometricCoordinate {
+private:
+    // mModel = mTranslation*mRotation
+    M3DMatrix33f mRotation;
+    M3DVector3f vTranslation;
+public:
+    GeometricCoordinate();
+    // rotation related to the container's coordinate(rad)
+    void globalRotation(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
+    // translation related to the container's coordinate
+    void globalTranslations(GLfloat x, GLfloat y, GLfloat z);
+    // rotation related to the local coordinate(rad)
+    void localRotation(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
+    // translation related to the local coordinate
+    void localTranslation(GLfloat x, GLfloat y, GLfloat z);
+
+    // Rotation related to a special coordinate: parrell to the container's coordinate 
+    // but ranslation with the local coordinate
+    void relativeRotation(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
+    // mModel = mTranslation*mRotation
+    void getMModel(M3DMatrix44f mModel);
+    void reset();
+    void resetRotation() {
+        m3dLoadIdentity33(mRotation);
+    }
+}; 
+            </code></pre>
+        Class <code>GeometricCoordinate</code> is inheritted by classes <code>GeometricObject</code> and <code>GeometricGroup</code><br/>
+        All objects are managed in a tree, so they will move together wither their containers.<br/>
+        </p>
+
+        <h3>The Robot</h3>
+<p>
+In this project, the robot is managed in the following structure. Circles are objects and squares are groups.
+<img src="./robot_structure.jpg" width = "100%"alt=""/>
+</p>
+<h3>Camera</h3>
+<p>
+    Camera also uses the functions in <code>GeometricCoordinate</code>. It can be moved just like a normal <code>GeometricObject</code>.<br/>
+    <pre><code data-language="c">// my_objectmanager.h
+class Camera :public GeometricCoordinate {
+private:
+    M3DMatrix44f mProjection;
+public:
+    Camera();
+    void setViewFrustum(GLfloat fFov,GLfloat fAspect,GLfloat fNear,GLfloat fFar);
+    M3DMatrix44f& projectionMatrix();
+    M3DMatrix44f& viewMatrix();
+};
+    </code></pre>
+    Specilly, it contains options about the view frustum. And can generate the view and projection matrix. Projection matrix is generated when setting view frustum.
+    <pre><code data-language="c">//my_camera.cpp
+void Camera::setViewFrustum(GLfloat fFov, GLfloat fAspect, GLfloat fNear, GLfloat fFar) {
+    m3dMakePerspectiveMatrix(mProjection, fFov, fAspect, fNear, fFar);
+}</code></pre>
+View matrix is the inverse matrix of the coordinate model matrix.
+<pre><code data-language="c">//my_camera.cpp
+M3DMatrix44f& Camera::viewMatrix() {
+    static M3DMatrix44f mV;
+    M3DMatrix44f temp;
+    getMModel(temp);
+    m3dInvertMatrix44(mV, temp);
+    return mV;
+}</code></pre>
+</p>
+<h3>Scene</h3>
+<p>
+    The scene contains one camera, several groups and several objects.
+</p>
+<h3>Shader</h3>
+<p>
+    In this project, the shader is quite simple. No textures. The only modifiable parameter is the direction of the parrel light.
+    The shader accepts a model matrix, a view matrix, a projection matrix and the position and normal direction of vertexes. These functions are in the namespace <code>shader</code>.
+    <pre><code data-language="c">namespace shader {	
+    void init();
+    void setParrelLight(GLfloat x,GLfloat y,GLfloat z);
+    void setModelMatrix(M3DMatrix44f mModel);
+    void setViewMatrix(M3DMatrix44f mView);
+    void setProjectionMatrix(M3DMatrix44f mProjection);
+}</code></pre>
+<h4>vertex shader</h4>
+<pre><code>void main(void){
+    gl_Position = mProjection*mView*mModel*vec4(vVertex,1.0);
+    mat4 mRotate = mModel;
+    mRotate[3] = vec4(0,0,0,1);
+    varyingVNormal = (mRotate*vec4(vNormal,1.0)).xyz;
+}
+</code></pre>
+<h4>fragment shader</h4>
+<pre><code>void main(void){
+	float color = (0.35+dot(varyingVNormal,vLight)/1.5);
+	gl_FragColor = vec4(color,color,color,1);
+}
+</code></pre>
+</p>
+<h3>Movement</h3>
+<p>
+    $t$ is current time in milliseconds, $T$ is expected period of movement in milliseconds.
+    $$f = 2\pi\times\frac{t}{T}$$
+    Left arm rotates around it's local x axis:
+    $$angle = \pi + 0.5sin(t)$$
+    Left forearm rotates around it's local axis:
+    $$ angle = 0.5sin(f)-1$$
+    Left leg rotates around it's local x axis:
+    $$angle=\pi - 0.3 + 0.7sin(f+\pi)$$
+    Left shank rotates around it's local x axis:
+    $$angle=0.7+0.7sin(f+\pi)$$
+    Right arm and leg use the same equations, but has a phase difference of $\pi$.<br>
+    The robot as a whole, moved up and down along y axis:
+$$y=0.02sin(2f)$$
+    The robot also leans forward to seem more balanced.
+</p>
+        <h3>Result</h3>
+        <div><video src="robot.mp4" controls >Your browser doesn't support video.<video></div>
+        <a download href="robot.zip"><p>Full Code</p></a>
+        <h3>Dependencies</h3>
+        <a href="http://www.glfw.org/"><p>GLFW</p></a>
+        <a href="http://glad.dav1d.de/"><p>GLAD</p></a>
+        <a href="https://github.com/HazimGazov/GLTools"><p>GLtools</p></a>
+    </div>
+    <script src="/rainbow/rainbow-custom.min.js"></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+            });
+    </script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+</body>
+</html>
