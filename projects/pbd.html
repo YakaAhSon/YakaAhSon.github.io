@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+    <title>Liu Zhaopeng</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="/rainbow/github.css" rel="stylesheet">
+</head>
+<body>
+    <div id = "main">
+        <a href="/" id="homelink">HOME</a>
+
+        <h1>Cloth Simulation</h1>
+        <h3>Simulation of cloth in the wind. Using position based dynamics method.</h3>
+        <hr>
+        <div><video src="pbd.mp4" controls autoplay>Your browser doesn't support video.<video></div>
+        <h3>Position Based Dynamics</h3>
+        Learn this method from <a href="http://matthias-mueller-fischer.ch/publications/posBasedDyn.pdf">Matthias Müller</a>.
+        This project is a simple application of Position Based Dynamics.
+        <h4>Core Idea</h4>
+        <p>
+        Use POSITION directly to predict and fix the status in the next frame. Because position is used directly, this method is unconditionally stable.
+        $$pos_{new} = pos_{now} + (pos_{now} - pos_{old}) + \frac{G}{2}\Delta t^2 + wind + constraint - friction$$
+        </p>
+        <h4>Procedure</h4>
+        In each frame:<br>
+        1. Predict Position
+        $$Pos_{predict} =  pos_{now} + (pos_{now} - pos_{old}) + \frac{G}{2}\Delta t^2 + wind$$
+        2. Satisfy Static Positions<br>
+        3. Satisfy  Constraints<br>
+        4. Update
+        $$pos_{old} = pos_{now}; pos{now} = pos{predict}$$
+        <h3>Constraint</h3>
+        <p>
+        The cloth's size is $1.0 \times 1.0$. Contains $11 \times 11 = 121$ vertexes. 2 neighbouring  vertexes make up one constraint.
+        $$distance(vertex_1,vertex_2) > = 0.1$$
+        All vertexes have the same weight. So the constraint is solved as forllowing:
+        <pre><code data-language="c">void satisfy() {
+    static M3DVector3f sub;
+    // sub = v1 - v2
+    m3dSubtractVectors3(sub, v1->pPos, v2->pPos);
+    // l = leng(sub)
+    float l = m3dGetVectorLength3(sub);
+    if (l > 0.1) {
+        // sub = sub*(l-0.1)/l*0.5
+        m3dScaleVector3(sub, (l - 0.1)/l*0.5);
+        // v2 = v2 + sub
+        m3dAddVectors3(v2->pPos, sub, v2->pPos);
+        // v1 = v1-sub
+        m3dSubtractVectors3(v1->pPos, v1->pPos,sub);
+    }
+}</code></pre>
+Satisfy all the constraints one by one.
+</p>
+<h3>Static Vertexes</h3>
+<p>
+    Two vertexes are pinned to the virtual wall. They have static position. This is performed by simplly moving them to the static position.
+    <pre><code data-language="c">void satisfy() {
+	m3dCopyVector3(v->pPos, pos);
+}</code></pre>
+</p>
+<h3>Friction</h3>
+<p>The friction of air is directly proportional to the speed of the vertex.
+</p>
+        <a download href="pbd.zip"><p>Full Code</p></a>
+        <h3>Dependencies</h3>
+        <a href="http://www.glfw.org/"><p>GLFW</p></a>
+        <a href="http://glad.dav1d.de/"><p>GLAD</p></a>
+        <a href="https://github.com/HazimGazov/GLTools"><p>GLtools</p></a>
+    </div>
+    <script src="/rainbow/rainbow-custom.min.js"></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+            });
+    </script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+</body>
+</html>
