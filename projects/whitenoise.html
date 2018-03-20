@@ -12,6 +12,7 @@
         <h1>White Noise</h1>
         <h3>Linear Congruential Method</h3>
         <hr>
+        <img src="whitenoise.jpg" alt=""/>
         <h3>Generate random unsigned byte [256]</h3>
         <p>Use Linear congruential method. 
             $$A_{n+1}=(B\times A_{n}+C)\ mod\ M$$
@@ -53,8 +54,7 @@ void main(void){
     gl_FragColor = vec4(originColor(vTexCoord),0,1);
 }</code></pre>
         </p>
-        <h3>Result</h3>
-        <img src="whitenoise.jpg" alt=""/>
+        
         <a download href="whitenoise.cpp"><p>Full Code</p></a>
         <h3>Dependencies</h3>
         <a href="http://www.glfw.org/"><p>GLFW</p></a>

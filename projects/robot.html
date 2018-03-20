@@ -13,7 +13,7 @@
         <h1>A Robot</h1>
         <h3>A running robot. This is for practicing scene management.</h3>
         <hr>
-
+        <div><video src="robot.mp4" controls autoplay>Your browser doesn't support video.<video></div>
         <h3>Scene Management Framework</h3>
         <p>
             All objects in the scene are managed in a tree. The root is the scene. The leaves are single geometric objects, in this project, only sphere and cylinder are included.
@@ -135,8 +135,7 @@ M3DMatrix44f& Camera::viewMatrix() {
 $$y=0.02sin(2f)$$
     The robot also leans forward to seem more balanced.
 </p>
-        <h3>Result</h3>
-        <div><video src="robot.mp4" controls >Your browser doesn't support video.<video></div>
+        
         <a download href="robot.zip"><p>Full Code</p></a>
         <h3>Dependencies</h3>
         <a href="http://www.glfw.org/"><p>GLFW</p></a>
